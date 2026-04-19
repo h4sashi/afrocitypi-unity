@@ -22,7 +22,6 @@ public class GoogleLogin : MonoBehaviour
 
     private string state; // Unique state for each login
     private string authUrl;
-    public ProfileUI profileUI;
 
     public GoogleUserProfile userProfile;
 
@@ -59,7 +58,9 @@ public class GoogleLogin : MonoBehaviour
                 // Parse the JSON response to GoogleUserProfile class
                 userProfile = JsonUtility.FromJson<GoogleUserProfile>(request.downloadHandler.text);
                 Debug.Log($"User Profile: {userProfile.name}, {userProfile.email}");
-                profileUI.enabled = true;
+              
+                // Pass the user profile to PlayFabManager for registration
+                PlayFabManager.Instance.OnGoogleLoginSuccess(userProfile);
 
                 // Break out of the loop once profile is retrieved
                 break;
