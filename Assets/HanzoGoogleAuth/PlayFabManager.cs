@@ -2,6 +2,7 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using PlayFab;
 using PlayFab.ClientModels;
+using System;
 using System.Collections;
 
 public class PlayFabManager : MonoBehaviour
@@ -45,6 +46,13 @@ public class PlayFabManager : MonoBehaviour
 
     private void Start()
     {
+        // Initialize PlayFab with settings
+        if (string.IsNullOrEmpty(PlayFabSettings.staticSettings.TitleId))
+        {
+            Debug.LogError("PlayFab Title ID is not set! Configure it in PlayFab Settings.");
+            return;
+        }
+
         // Find the GoogleLogin script in the scene
         googleLoginScript = FindObjectOfType<GoogleLogin>();
         
@@ -59,8 +67,21 @@ public class PlayFabManager : MonoBehaviour
     /// </summary>
     public void OnGoogleLoginSuccess(GoogleUserProfile userProfile)
     {
+        if (userProfile == null)
+        {
+            Debug.LogError("Received null user profile!");
+            return;
+        }
+
         currentUserProfile = userProfile;
         Debug.Log($"Received Google profile: {userProfile.email}");
+        
+        // Check if PlayFab is properly initialized
+        if (string.IsNullOrEmpty(PlayFabSettings.staticSettings.TitleId))
+        {
+            Debug.LogError("PlayFab Title ID not configured!");
+            return;
+        }
         
         // Register or login with PlayFab using Google profile data
         RegisterOrLoginWithPlayFab(userProfile);
@@ -88,14 +109,51 @@ public class PlayFabManager : MonoBehaviour
 
     private void RegisterOrLoginWithPlayFab(GoogleUserProfile userProfile)
     {
-        // Create a custom username from email (remove domain)
-        string customUsername = userProfile.email.Split('@')[0] + "_" + userProfile.id.Substring(0, 8);
-        
+        // Validate user profile
+        if (string.IsNullOrEmpty(userProfile.id))
+        {
+            Debug.LogError("Invalid user profile - missing Google ID");
+            return;
+        }
+
+        // Use Google ID as unique username (guaranteed to be unique)
+        // Create a valid username: alphanumeric + underscore, max 20 chars
+        string baseUsername = "g" + userProfile.id.Replace("-", "").Replace(".", "").Substring(0, Math.Min(19, userProfile.id.Length));
+        string customUsername = baseUsername;
+        string password = GenerateSecurePassword(userProfile.id);
+
+        Debug.Log($"Attempting login first - Username: {customUsername}");
+
+        // Try login first
+        var loginRequest = new LoginWithPlayFabRequest
+        {
+            Username = customUsername,
+            Password = password
+        };
+
+        PlayFabClientAPI.LoginWithPlayFab(loginRequest,
+            success =>
+            {
+                Debug.Log("PlayFab login successful!");
+                UpdatePlayerProfile(userProfile);
+                LoadNextScene();
+            },
+            error =>
+            {
+                // If login fails, try registration
+                Debug.Log($"Login failed, attempting registration - Error: {error.ErrorMessage}");
+                RegisterNewUser(userProfile, customUsername, password);
+            });
+    }
+
+    private void RegisterNewUser(GoogleUserProfile userProfile, string customUsername, string password)
+    {
+        Debug.Log($"Attempting registration - Username: {customUsername}");
+
         var request = new RegisterPlayFabUserRequest
         {
             Username = customUsername,
-            Email = userProfile.email,
-            Password = GenerateSecurePassword(userProfile.id),
+            Password = password,
             DisplayName = userProfile.name,
             RequireBothUsernameAndEmail = false
         };
@@ -109,32 +167,16 @@ public class PlayFabManager : MonoBehaviour
             },
             error =>
             {
-                // If registration fails (user might already exist), try login
-                Debug.LogWarning($"Registration failed: {error.GenerateErrorReport()}");
-                LoginWithPlayFab(userProfile);
-            });
-    }
+                Debug.LogError($"Registration failed - Full error: {error.GenerateErrorReport()}");
+                Debug.LogError($"Error code: {error.Error}, Error message: {error.ErrorMessage}");
 
-    private void LoginWithPlayFab(GoogleUserProfile userProfile)
-    {
-        string customUsername = userProfile.email.Split('@')[0] + "_" + userProfile.id.Substring(0, 8);
-        string password = GenerateSecurePassword(userProfile.id);
-
-        var request = new LoginWithPlayFabRequest
-        {
-            Username = customUsername,
-            Password = password
-        };
-
-        PlayFabClientAPI.LoginWithPlayFab(request,
-            success =>
-            {
-                Debug.Log("PlayFab login successful!");
-                LoadNextScene();
-            },
-            error =>
-            {
-                Debug.LogError($"PlayFab login failed: {error.GenerateErrorReport()}");
+                // If registration fails due to username taken (unlikely with Google ID), try with timestamp
+                if (error.Error == PlayFabErrorCode.UsernameNotAvailable)
+                {
+                    string timestampUsername = "g" + System.DateTime.Now.Ticks.ToString().Substring(10, 8);
+                    Debug.Log($"Username taken, trying with timestamp: {timestampUsername}");
+                    RegisterNewUser(userProfile, timestampUsername, password);
+                }
             });
     }
 
