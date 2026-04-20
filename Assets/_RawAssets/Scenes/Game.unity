@@ -6660,11 +6660,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 58359a5e049bcf045adae44f2bf40fa3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  playFabManager: {fileID: 245058319}
-  list_playerData: []
   lB_DetailsPrefab: {fileID: 2829320205393362934, guid: 71c5db3ddc2b23740ac8e5890822480b, type: 3}
   leaderboardTransform: {fileID: 1896050104}
   leaderboardMenu: {fileID: 1174095657}
+  list_playerData: []
 --- !u!1 &157900716
 GameObject:
   m_ObjectHideFlags: 0
@@ -12859,7 +12858,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &556673995
 RectTransform:
   m_ObjectHideFlags: 0
@@ -13610,7 +13609,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &595634324
 RectTransform:
   m_ObjectHideFlags: 0
@@ -14546,7 +14545,7 @@ MonoBehaviour:
   m_linkedTextComponent: {fileID: 0}
   parentLinkedComponent: {fileID: 0}
   m_enableKerning: 1
-  m_ActiveFontFeatures: 00000000
+  m_ActiveFontFeatures: 6e72656b
   m_enableExtraPadding: 0
   checkPaddingRequired: 0
   m_isRichText: 1
@@ -30186,7 +30185,7 @@ MonoBehaviour:
   m_linkedTextComponent: {fileID: 0}
   parentLinkedComponent: {fileID: 0}
   m_enableKerning: 1
-  m_ActiveFontFeatures: 00000000
+  m_ActiveFontFeatures: 6e72656b
   m_enableExtraPadding: 0
   checkPaddingRequired: 0
   m_isRichText: 1

@@ -1,7 +1,3 @@
-
-
-
-
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -19,6 +15,8 @@ public class PlayFabManager : MonoBehaviour
 
     [SerializeField]
     private bool useDeviceId = true;
+
+    public bool isPlayerPrefsCleared = false;
 
     private GoogleLogin googleLoginScript;
     private GoogleUserProfile currentUserProfile;
@@ -57,6 +55,15 @@ public class PlayFabManager : MonoBehaviour
 
     private void Start()
     {
+        if (isPlayerPrefsCleared == true)
+        {
+            PlayerPrefs.DeleteAll();
+            // isPlayerPrefsCleared = false;
+        }
+        else
+        {
+            return;
+        }
         // Initialize PlayFab with settings
         if (string.IsNullOrEmpty(PlayFabSettings.staticSettings.TitleId))
         {
@@ -65,7 +72,8 @@ public class PlayFabManager : MonoBehaviour
         }
 
         // Find the GoogleLogin script in the scene
-        googleLoginScript = UnityEngine.Object.FindFirstObjectByType<GoogleLogin>() ?? GoogleLogin.Instance;
+        googleLoginScript =
+            UnityEngine.Object.FindFirstObjectByType<GoogleLogin>() ?? GoogleLogin.Instance;
 
         if (googleLoginScript == null)
         {
@@ -119,7 +127,8 @@ public class PlayFabManager : MonoBehaviour
     {
         if (googleLoginScript == null)
         {
-            googleLoginScript = UnityEngine.Object.FindFirstObjectByType<GoogleLogin>() ?? GoogleLogin.Instance;
+            googleLoginScript =
+                UnityEngine.Object.FindFirstObjectByType<GoogleLogin>() ?? GoogleLogin.Instance;
         }
 
         var profile = googleLoginScript?.UserProfile;
@@ -374,9 +383,6 @@ public class PlayFabManager : MonoBehaviour
         );
     }
 
-    /// <summary>
-    /// Load player's level progress from PlayFab
-    /// </summary>
     public void LoadPlayerLevelProgress(System.Action onComplete = null)
     {
         var request = new GetUserDataRequest();
@@ -385,9 +391,8 @@ public class PlayFabManager : MonoBehaviour
             request,
             result =>
             {
-                int unlockedLevel = 1; // Default level
+                int unlockedLevel = 1;
 
-                // Try to get the unlocked level from custom data
                 if (result.Data != null && result.Data.ContainsKey("unlockedLevel"))
                 {
                     string levelValue = result.Data["unlockedLevel"].Value;
@@ -398,27 +403,23 @@ public class PlayFabManager : MonoBehaviour
                         unlockedLevel = level;
                         Debug.Log($"✓ Level progress loaded from PlayFab: Level {unlockedLevel}");
                     }
-                    else
-                    {
-                        Debug.LogWarning($"Could not parse level value: {levelValue}");
-                    }
                 }
                 else
                 {
-                    Debug.Log("No unlocked level found in PlayFab data, using default Level 1");
+                    Debug.Log("No unlocked level in PlayFab, using default Level 1");
                 }
 
-                // Set the level in local storage and LevelManager
-                UnityEngine.PlayerPrefs.SetInt("currentLevel", unlockedLevel);
-                UnityEngine.PlayerPrefs.SetInt("UnlockedLevels", unlockedLevel);
-                UnityEngine.PlayerPrefs.Save();
+                PlayerPrefs.SetInt("HighestUnlockedLevel", unlockedLevel); // was "currentLevel"
+                PlayerPrefs.SetInt("UnlockedLevels", unlockedLevel);
+                PlayerPrefs.Save();
 
+                if (LevelManager.instance != null)
+                    LevelManager.instance.getLevel = unlockedLevel;
                 onComplete?.Invoke();
             },
             error =>
             {
                 Debug.LogError($"✗ Failed to load level progress: {error.GenerateErrorReport()}");
-                // Use default level if fetch fails
                 onComplete?.Invoke();
             }
         );
@@ -477,12 +478,8 @@ public class PlayFabManager : MonoBehaviour
         {
             Statistics = new List<StatisticUpdate>
             {
-                new StatisticUpdate
-                {
-                    StatisticName = "LevelProgress",
-                    Value = score
-                }
-            }
+                new StatisticUpdate { StatisticName = "PlatformScore", Value = score },
+            },
         };
 
         PlayFabClientAPI.UpdatePlayerStatistics(
@@ -493,49 +490,49 @@ public class PlayFabManager : MonoBehaviour
             },
             error =>
             {
-                Debug.LogError($"✗ Failed to send leaderboard score: {error.GenerateErrorReport()}");
+                Debug.LogError(
+                    $"✗ Failed to send leaderboard score: {error.GenerateErrorReport()}"
+                );
             }
         );
     }
 
-    /// <summary>
-    /// Get leaderboard data from PlayFab
-    /// </summary>
-    public void GetLeaderboard()
+    public void GetLeaderboard(System.Action<List<LeaderboardManager.PlayerData>> onComplete = null)
     {
         var request = new GetLeaderboardRequest
         {
-            StatisticName = "LevelProgress",
+            StatisticName = "PlatformScore",
             StartPosition = 0,
-            MaxResultsCount = 10
+            MaxResultsCount = 10,
         };
 
         PlayFabClientAPI.GetLeaderboard(
             request,
             result =>
             {
-                // Clear existing data
-                // LeaderboardManager.manager.list_playerData.Clear();
+                var playerDataList = new List<LeaderboardManager.PlayerData>();
 
-                // Populate with new data
                 for (int i = 0; i < result.Leaderboard.Count; i++)
                 {
                     var entry = result.Leaderboard[i];
-                    // LeaderboardManager.manager.list_playerData.Add(new LeaderboardManager.PlayerData
-                    // {
-                    //     number = entry.Position + 1, // Position is 0-based, but we want 1-based ranking
-                    //     name = entry.DisplayName ?? "Player",
-                    //     level = entry.StatValue
-                    // });
+                    playerDataList.Add(
+                        new LeaderboardManager.PlayerData
+                        {
+                            number = entry.Position + 1,
+                            name = entry.DisplayName ?? "Player",
+                            level = entry.StatValue,
+                        }
+                    );
                 }
 
-                Debug.Log($"✓ Leaderboard data retrieved successfully: {result.Leaderboard.Count} entries");
+                Debug.Log($"✓ Leaderboard data retrieved: {playerDataList.Count} entries");
+                onComplete?.Invoke(playerDataList);
             },
             error =>
             {
                 Debug.LogError($"✗ Failed to get leaderboard: {error.GenerateErrorReport()}");
+                onComplete?.Invoke(new List<LeaderboardManager.PlayerData>());
             }
         );
     }
 }
-

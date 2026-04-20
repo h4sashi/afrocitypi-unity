@@ -1,24 +1,37 @@
 using System.Collections;
 using System.Collections.Generic;
-using UnityEngine;
 using DG.Tweening;
-using UnityEngine.UI;
 using TMPro;
+using UnityEngine;
 using UnityEngine.SceneManagement;
+using UnityEngine.UI;
 
 public class UIManager : MonoBehaviour
 {
     public static UIManager instance;
+
     [Header("Panels")]
     public GameObject[] popUpAry;
-    public GameObject PanelSplashScreen, PanelGameWin, PanelGameOver, PanelGamePlay, PanelHomeScreen, PanelSpotDiffrence, PanelLevelSelection, PanelSettings, PanelProfile, PanelShop, PanelLeaderBoard;
-    public TextMeshProUGUI txtgamelosereason, txtSpotDifference;
-
+    public GameObject PanelSplashScreen,
+        PanelGameWin,
+        PanelGameOver,
+        PanelGamePlay,
+        PanelHomeScreen,
+        PanelSpotDiffrence,
+        PanelLevelSelection,
+        PanelSettings,
+        PanelProfile,
+        PanelShop,
+        PanelLeaderBoard;
+    public TextMeshProUGUI txtgamelosereason,
+        txtSpotDifference;
 
     [Header("Profile")]
     public TextMeshProUGUI txtUsername;
-    public TextMeshProUGUI txtUserlevel, txtUsercoin;
-    public Image userprofile1, userprofile2;
+    public TextMeshProUGUI txtUserlevel,
+        txtUsercoin;
+    public Image userprofile1,
+        userprofile2;
 
     [Header("Values update")]
     public List<TextMeshProUGUI> hintTextList;
@@ -45,7 +58,8 @@ public class UIManager : MonoBehaviour
 
     public bool IsAnyPopUpOpen()
     {
-        if (PanelGamePlay.activeSelf && !PanelSpotDiffrence.activeSelf && !PanelGameOver.activeSelf) return false;
+        if (PanelGamePlay.activeSelf && !PanelSpotDiffrence.activeSelf && !PanelGameOver.activeSelf)
+            return false;
         return true;
     }
 
@@ -88,8 +102,13 @@ public class UIManager : MonoBehaviour
     {
         PopUpManager(PanelGamePlay);
         if (LevelManager.instance.CurlevelDetail.levelType == LevelDetails.LevelType.Timebase)
-            txtSpotDifference.text = "Spot 5 differences in " + LevelManager.instance.CurlevelDetail.totalTime + " secs to complete this level";
-        else if (LevelManager.instance.CurlevelDetail.levelType == LevelDetails.LevelType.wrongSelection)
+            txtSpotDifference.text =
+                "Spot 5 differences in "
+                + LevelManager.instance.CurlevelDetail.totalTime
+                + " secs to complete this level";
+        else if (
+            LevelManager.instance.CurlevelDetail.levelType == LevelDetails.LevelType.wrongSelection
+        )
             txtSpotDifference.text = "Spot 5 differences to complete this level";
         PopUpManager(PanelSpotDiffrence);
     }
@@ -98,7 +117,22 @@ public class UIManager : MonoBehaviour
     {
         SoundHapticManager.Instance.playClip(SoundHapticManager.Instance.win, 1);
         SoundHapticManager.Instance.Haptic();
-        LevelManager.instance.getLevel++;
+
+        int completedLevel = PlayerPrefs.GetInt("currentLevel");
+        int highestUnlocked = LevelManager.instance.getLevel; // now reads "HighestUnlockedLevel"
+
+        if (completedLevel >= highestUnlocked)
+        {
+            LevelManager.instance.getLevel++;
+            PlayFabManager.Instance.SavePlayerLevelProgress(LevelManager.instance.getLevel);
+            Debug.Log($"New level unlocked: {LevelManager.instance.getLevel}");
+        }
+        else
+        {
+            Debug.Log($"Replayed level {completedLevel}, highest stays at {highestUnlocked}");
+        }
+
+        LeaderboardManager.manager.SendLeaderboard(30);
         StartCoroutine(Wait("GameWin", .5f));
     }
 
@@ -115,26 +149,28 @@ public class UIManager : MonoBehaviour
         switch (EventName)
         {
             case "GameWin":
-                {
-                    yield return new WaitForSeconds(time);
-                    PopUpManager(PanelGameWin);
-                    break;
-                }
+            {
+                yield return new WaitForSeconds(time);
+                PopUpManager(PanelGameWin);
+                break;
+            }
             case "GameFail":
-                {
-                    yield return new WaitForSeconds(time);
-                    PopUpManager(PanelGameOver);
-                    break;
-                }
+            {
+                yield return new WaitForSeconds(time);
+                PopUpManager(PanelGameOver);
+                break;
+            }
         }
-        PlayerPrefs.SetInt("Level_" + PlayerPrefs.GetInt("currentLevel") + "_of_", PlayerPrefs.GetInt("Level_" + PlayerPrefs.GetInt("currentLevel") + "_of_") + 1);
-
+        PlayerPrefs.SetInt(
+            "Level_" + PlayerPrefs.GetInt("currentLevel") + "_of_",
+            PlayerPrefs.GetInt("Level_" + PlayerPrefs.GetInt("currentLevel") + "_of_") + 1
+        );
     }
 
     public void OnClick_LeaderBoard()
     {
-        //PanelLeaderBoard.SetActive(true);
-        // LeaderboardManager.manager.ShowLeaderboard();
+        PanelLeaderBoard.SetActive(true);
+        LeaderboardManager.manager.ShowLeaderboard();
     }
 
     public void OnClick_LeaderBoard_Close()
@@ -143,6 +179,7 @@ public class UIManager : MonoBehaviour
     }
 
     string str_shopOnFail;
+
     public void OpenShop_OnClick_LevelFailed()
     {
         OnClick_Shop(str_shopOnFail);
@@ -154,25 +191,25 @@ public class UIManager : MonoBehaviour
         switch (typeOfShop)
         {
             case "Coin":
-                {
-                    Shop.manager.CoinShopMenu();
-                    break;
-                }
+            {
+                Shop.manager.CoinShopMenu();
+                break;
+            }
             case "Hint":
-                {
-                    Shop.manager.HintShopMenu();
-                    break;
-                }
+            {
+                Shop.manager.HintShopMenu();
+                break;
+            }
             case "Lives":
-                {
-                    Shop.manager.LivesShopMenu();
-                    break;
-                }
+            {
+                Shop.manager.LivesShopMenu();
+                break;
+            }
             case "Time":
-                {
-                    Shop.manager.TimeShopMenu();
-                    break;
-                }
+            {
+                Shop.manager.TimeShopMenu();
+                break;
+            }
         }
     }
 
@@ -216,7 +253,6 @@ public class UIManager : MonoBehaviour
         SceneManager.LoadScene(1);
     }
 
-
     void SetUserProfile()
     {
         // Clear existing sprites
@@ -236,20 +272,26 @@ public class UIManager : MonoBehaviour
                 }
 
                 // Download and set profile picture
-                PlayFabManager.Instance.DownloadProfilePicture((texture) =>
-                {
-                    if (texture != null)
+                PlayFabManager.Instance.DownloadProfilePicture(
+                    (texture) =>
                     {
-                        Sprite profileSprite = Sprite.Create(texture, new Rect(0, 0, texture.width, texture.height), new Vector2(0.5f, 0.5f));
-                        userprofile1.sprite = profileSprite;
-                        userprofile2.sprite = profileSprite;
-                        Debug.Log("Profile images set successfully");
+                        if (texture != null)
+                        {
+                            Sprite profileSprite = Sprite.Create(
+                                texture,
+                                new Rect(0, 0, texture.width, texture.height),
+                                new Vector2(0.5f, 0.5f)
+                            );
+                            userprofile1.sprite = profileSprite;
+                            userprofile2.sprite = profileSprite;
+                            Debug.Log("Profile images set successfully");
+                        }
+                        else
+                        {
+                            Debug.LogWarning("Failed to download profile picture");
+                        }
                     }
-                    else
-                    {
-                        Debug.LogWarning("Failed to download profile picture");
-                    }
-                });
+                );
             }
             else
             {
@@ -273,7 +315,13 @@ public class UIManager : MonoBehaviour
         {
             hintTextList[i].text = GameManager.instance.getsetHint.ToString();
         }
-        LevelManager.instance.txthint.text = "Hint(" + (GameManager.instance.getsetHint + PlayerPrefs.GetInt("BonusHintOf" + PlayerPrefs.GetInt("currentLevel"))) + ")";
+        LevelManager.instance.txthint.text =
+            "Hint("
+            + (
+                GameManager.instance.getsetHint
+                + PlayerPrefs.GetInt("BonusHintOf" + PlayerPrefs.GetInt("currentLevel"))
+            )
+            + ")";
     }
 
     public void UpdateCoins()
@@ -292,10 +340,11 @@ public class UIManager : MonoBehaviour
         {
             // YodoManager.manager.ShowRewarded(1);
         }
-        else if (LevelManager.instance.CurlevelDetail.levelType == LevelDetails.LevelType.wrongSelection)
+        else if (
+            LevelManager.instance.CurlevelDetail.levelType == LevelDetails.LevelType.wrongSelection
+        )
         {
             // YodoManager.manager.ShowRewarded(2);
         }
-
     }
 }
