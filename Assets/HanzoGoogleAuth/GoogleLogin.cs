@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 using UnityEngine.Networking;
 using System.Collections;
@@ -16,6 +17,9 @@ public class GoogleUserProfile
 
 public class GoogleLogin : MonoBehaviour
 {
+    public static GoogleLogin Instance { get; private set; }
+    public event Action<GoogleUserProfile> OnProfileAvailable;
+
     // Your Google Client ID
     private string clientId = "131729982261-5qba02r0rtendlb9reps1edo2ccjq6rk.apps.googleusercontent.com";
     private string redirectUri = "https://afrocity-auth-google.onrender.com/auth/google/callback";
@@ -24,6 +28,12 @@ public class GoogleLogin : MonoBehaviour
     private string authUrl;
 
     public GoogleUserProfile userProfile;
+    public GoogleUserProfile UserProfile => userProfile;
+
+    private void Awake()
+    {
+        Instance = this;
+    }
 
     public void LoginWithGoogle()
     {
@@ -58,8 +68,9 @@ public class GoogleLogin : MonoBehaviour
                 // Parse the JSON response to GoogleUserProfile class
                 userProfile = JsonUtility.FromJson<GoogleUserProfile>(request.downloadHandler.text);
                 Debug.Log($"User Profile: {userProfile.name}, {userProfile.email}");
-              
-                // Pass the user profile to PlayFabManager for registration
+
+                // Notify listeners and hand the profile off to PlayFabManager
+                OnProfileAvailable?.Invoke(userProfile);
                 PlayFabManager.Instance.OnGoogleLoginSuccess(userProfile);
 
                 // Break out of the loop once profile is retrieved
