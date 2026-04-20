@@ -29,6 +29,12 @@ public class UIManager : MonoBehaviour
         instance = this;
     }
 
+    private void OnEnable()
+    {
+        // Refresh profile when scene loads (especially for Game scene)
+        RefreshUserProfile();
+    }
+
     private void Start()
     {
         UpdateCoins();
@@ -213,20 +219,52 @@ public class UIManager : MonoBehaviour
 
     void SetUserProfile()
     {
-        // if (LoginManager.manager != null)
-        // {
+        // Clear existing sprites
+        userprofile1.sprite = null;
+        userprofile2.sprite = null;
 
-        //     txtUsername.text = LoginManager.manager.Username;
-        //     userprofile1.sprite = null;
-        //     userprofile2.sprite = null;
-        //     userprofile1.sprite = LoginManager.manager.userprofile;
-        //     userprofile2.sprite = LoginManager.manager.userprofile;
-        //     /*if (LoginManager.manager.userprofile != null)
-        //     {
-        //     userprofile1.sprite = LoginManager.manager.userprofile;
-        //     userprofile2.sprite = LoginManager.manager.userprofile;
-        //     }*/
-        // }
+        // Try to get profile from PlayFabManager (works across scenes)
+        if (PlayFabManager.Instance != null)
+        {
+            var userProfile = PlayFabManager.Instance.GetCurrentUserProfile();
+            if (userProfile != null)
+            {
+                // Set username if available
+                if (txtUsername != null)
+                {
+                    txtUsername.text = userProfile.given_name ?? userProfile.name ?? "Player";
+                }
+
+                // Download and set profile picture
+                PlayFabManager.Instance.DownloadProfilePicture((texture) =>
+                {
+                    if (texture != null)
+                    {
+                        Sprite profileSprite = Sprite.Create(texture, new Rect(0, 0, texture.width, texture.height), new Vector2(0.5f, 0.5f));
+                        userprofile1.sprite = profileSprite;
+                        userprofile2.sprite = profileSprite;
+                        Debug.Log("Profile images set successfully");
+                    }
+                    else
+                    {
+                        Debug.LogWarning("Failed to download profile picture");
+                    }
+                });
+            }
+            else
+            {
+                Debug.Log("No user profile available from PlayFabManager");
+            }
+        }
+        else
+        {
+            Debug.LogWarning("PlayFabManager instance not found");
+        }
+    }
+
+    public void RefreshUserProfile()
+    {
+        SetUserProfile();
     }
 
     public void UpdateHint()
