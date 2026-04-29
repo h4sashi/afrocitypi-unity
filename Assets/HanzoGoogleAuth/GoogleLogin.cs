@@ -22,7 +22,7 @@ public class GoogleLogin : MonoBehaviour
 
     // Your Google Client ID
     private string clientId = "131729982261-5qba02r0rtendlb9reps1edo2ccjq6rk.apps.googleusercontent.com";
-    private string redirectUri = "https://afrocity-auth-google.onrender.com/auth/google/callback";
+    private string redirectUri = "https://afropi-2.onrender.com/auth/google/callback";
 
     private string state; // Unique state for each login
     private string authUrl;
@@ -56,7 +56,7 @@ public class GoogleLogin : MonoBehaviour
 
     IEnumerator PollForUserProfile()
     {
-        string profileEndpoint = $"https://afrocity-auth-google.onrender.com/getProfile?state={state}";
+        string profileEndpoint = $"https://afropi-2.onrender.com/getProfile?state={state}";
 
         while (true)
         {
